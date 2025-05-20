@@ -1,0 +1,68 @@
+# cl_sov_agent.py
+
+from crewai import Crew, Agent, Task, CrewConfig
+from tools.notion_tool import NotionTool
+from tools.gumroad_tool import GumroadTool
+from tools.vault_parser import VaultTool
+from langchain.llms import OpenAI  # Or replace with Claude/GPT4o API
+
+# Tools (to be coded separately – I’ll give you templates below)
+notion_tool = NotionTool(api_key="YOUR_NOTION_KEY")
+gumroad_tool = GumroadTool(api_token="YOUR_GUMROAD_TOKEN")
+vault_tool = VaultTool(vault_path="./Vault")
+
+# 1. Content Formatter Agent
+formatter = Agent(
+    role="Prompt Card Formatter",
+    goal="Extract and polish tools from CLConsulting Vault into branded copy",
+    backstory="A strategic prompt engineer focused on monetizing IP at scale.",
+    tools=[vault_tool],
+    allow_delegation=False,
+    verbose=True
+)
+
+# 2. Notion Publisher Agent
+notion_agent = Agent(
+    role="Microsite Publisher",
+    goal="Publish product-ready toolkits and prompt cards to the Notion microsite",
+    backstory="An experienced Notion API agent tasked with microsite deployment.",
+    tools=[notion_tool],
+    allow_delegation=False,
+    verbose=True
+)
+
+# 3. Gumroad Launch Agent
+gumroad_agent = Agent(
+    role="Product Launcher",
+    goal="Create monetized product pages with 48-hour free window",
+    backstory="Handles product description, pricing tiers, and CTA configuration.",
+    tools=[gumroad_tool],
+    allow_delegation=False,
+    verbose=True
+)
+
+# Define Tasks
+task1 = Task(
+    agent=formatter,
+    description="Extract top 3 monetizable prompt tools from the Vault and format them as product-ready prompt cards."
+)
+
+task2 = Task(
+    agent=notion_agent,
+    description="Publish the formatted toolkit to the public Notion microsite with sections: Overview, Quickstart, Licensing CTA, and Contact."
+)
+
+task3 = Task(
+    agent=gumroad_agent,
+    description="Create a product page on Gumroad titled 'JobDomination Kit' with pricing tier: $0 for first 48 hours, then $47. Include download assets and CTA."
+)
+
+# Deploy Crew
+crew = Crew(
+    agents=[formatter, notion_agent, gumroad_agent],
+    tasks=[task1, task2, task3],
+    verbose=True
+)
+
+# Run Everything
+crew.kickoff()
