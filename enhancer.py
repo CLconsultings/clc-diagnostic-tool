@@ -1,14 +1,16 @@
 # cl_sov_agent.py
 
+import os
+
 from crewai import Crew, Agent, Task
 from tools.notion_tool import NotionTool
 from tools.gumroad_tool import GumroadTool
 from tools.vault_parser import VaultTool
 
-# Tools (to be coded separately – I’ll give you templates below)
-notion_tool = NotionTool(api_key="YOUR_NOTION_KEY")
-gumroad_tool = GumroadTool(api_token="YOUR_GUMROAD_TOKEN")
-vault_tool = VaultTool(vault_path="./Vault")
+# Tools — credentials are read from the environment so no secrets are committed.
+notion_tool = NotionTool(api_key=os.environ.get("NOTION_API_KEY"))
+gumroad_tool = GumroadTool(api_token=os.environ.get("GUMROAD_API_TOKEN"))
+vault_tool = VaultTool(vault_path=os.environ.get("VAULT_PATH", "./Vault"))
 
 # 1. Content Formatter Agent
 formatter = Agent(
@@ -43,17 +45,20 @@ gumroad_agent = Agent(
 # Define Tasks
 task1 = Task(
     agent=formatter,
-    description="Extract top 3 monetizable prompt tools from the Vault and format them as product-ready prompt cards."
+    description="Extract top 3 monetizable prompt tools from the Vault and format them as product-ready prompt cards.",
+    expected_output="Three branded prompt cards, each with a title, description, and usage example."
 )
 
 task2 = Task(
     agent=notion_agent,
-    description="Publish the formatted toolkit to the public Notion microsite with sections: Overview, Quickstart, Licensing CTA, and Contact."
+    description="Publish the formatted toolkit to the public Notion microsite with sections: Overview, Quickstart, Licensing CTA, and Contact.",
+    expected_output="A published Notion page URL containing the Overview, Quickstart, Licensing CTA, and Contact sections."
 )
 
 task3 = Task(
     agent=gumroad_agent,
-    description="Create a product page on Gumroad titled 'JobDomination Kit' with pricing tier: $0 for first 48 hours, then $47. Include download assets and CTA."
+    description="Create a product page on Gumroad titled 'JobDomination Kit' with pricing tier: $0 for first 48 hours, then $47. Include download assets and CTA.",
+    expected_output="A live Gumroad product page URL for 'JobDomination Kit' with the configured pricing tiers and CTA."
 )
 
 # Deploy Crew
@@ -64,4 +69,5 @@ crew = Crew(
 )
 
 # Run Everything
-crew.kickoff()
+if __name__ == "__main__":
+    crew.kickoff()
