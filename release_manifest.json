@@ -11,6 +11,16 @@
     "Governed release / release-gate",
     "Governance integrity / immutable-controls"
   ],
+  "version_controls": {
+    "instrument": [
+      "diagnostic/questions.py"
+    ],
+    "engine": [
+      "diagnostic/engine.py",
+      "diagnostic/model.py",
+      "streamlit_app.py"
+    ]
+  },
   "runtime": "Python 3.11",
   "scope_boundary": "Diagnostic decision support only; no legal, regulatory, security, compliance, certification, or consequential autonomy authorization."
 }

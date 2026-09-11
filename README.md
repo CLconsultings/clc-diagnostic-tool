@@ -42,8 +42,9 @@ pytest -q
 The governed release gate validates the manifest, ownership, compilation,
 critical static checks, regression tests, and runtime dependency audit. A
 separate base-branch integrity gate prevents routine changes from weakening
-those controls. A failed, skipped, stale, or unavailable check does not
-authorize release.
+those controls. Governed behavior changes require an increased semantic
+version and changelog evidence. A failed, skipped, stale, or unavailable check
+does not authorize release.
 
 ## Data handling
 

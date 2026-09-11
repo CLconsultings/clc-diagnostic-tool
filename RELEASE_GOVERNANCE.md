@@ -30,15 +30,17 @@ Passing automation authorizes routine product releases. There is no separate
 human-approval gate for those releases. Failed, skipped, stale, or unavailable
 checks do not authorize release.
 
-## Automated gate
+## Automated product gate
 
-The single required gate performs:
+The product gate performs:
 
 - release-manifest and ownership validation;
 - Python compilation and critical static checks;
 - the complete regression suite;
 - runtime dependency vulnerability auditing; and
 - verification that the release-control files remain present and consistent.
+- comparison with the exact pull-request base so governed behavior cannot
+  change without a higher semantic version and a changelog entry.
 
 The workflow uses read-only repository permissions, pinned first-party action
 revisions, a time limit, and concurrency cancellation for superseded runs.
@@ -47,9 +49,10 @@ revisions, a time limit, and concurrency cancellation for superseded runs.
 
 The integrity check runs from the trusted base branch using
 `pull_request_target`; it does not check out or execute pull-request code. It
-automatically rejects routine pull requests that change CODEOWNERS, either
-required workflow, this policy, or the release validator. This prevents the
-release gate from authorizing its own removal or weakening.
+automatically rejects routine pull requests that change CODEOWNERS, the
+approved proprietary license, any workflow, this policy, or the release
+validator. It checks both names of renamed files. This prevents a release gate
+from authorizing its own removal, replacement, spoofing, or weakening.
 
 Changing the control plane requires an explicit governance re-bootstrap
 authorized by the repository owner. The proposed controls must be reviewed and
@@ -64,8 +67,10 @@ bypass and cannot authorize a product release in the same change.
 - **Major:** change to questions, dimensions, scoring, thresholds, pathway
   semantics, decision states, or authority boundaries.
 
-Any governed-behavior change must update the appropriate version in
-`diagnostic/version.py`, `release_manifest.json`, and `CHANGELOG.md`.
+Changes to the governed paths declared in `release_manifest.json` must raise
+the associated semantic version in `diagnostic/version.py` and add that version
+to `CHANGELOG.md`. The product gate compares the proposal with the exact base
+commit and treats renames as delete-plus-add changes.
 
 ## Evidence retained
 

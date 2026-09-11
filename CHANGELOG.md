@@ -9,6 +9,8 @@ All governed releases are recorded here using semantic versioning.
 - Corrected repository ownership and separated runtime from test dependencies.
 - Added release-control, regression, static-analysis, and dependency-audit gates.
 - Added an independent base-branch gate that prevents routine changes from weakening the control plane.
+- Protected control-file renames, all workflow definitions, and the exact proprietary license.
+- Enforced semantic version and changelog updates for governed behavior changes.
 - Added governing versions to every assessment result.
 - Made decision controls and interface defaults fail closed.
 

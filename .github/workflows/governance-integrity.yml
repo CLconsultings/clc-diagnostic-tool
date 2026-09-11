@@ -21,20 +21,26 @@ jobs:
           script: |
             const protectedPaths = new Set([
               ".github/CODEOWNERS",
-              ".github/workflows/governance-integrity.yml",
-              ".github/workflows/python-app.yml",
+              "LICENSE",
               "RELEASE_GOVERNANCE.md",
               "scripts/validate_release.py",
             ]);
+            const protectedPrefixes = [".github/workflows/"];
             const files = await github.paginate(github.rest.pulls.listFiles, {
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.issue.number,
               per_page: 100,
             });
-            const changedControls = files
-              .map((file) => file.filename)
-              .filter((filename) => protectedPaths.has(filename));
+            const changedControls = [...new Set(
+              files
+                .flatMap((file) => [file.filename, file.previous_filename])
+                .filter(Boolean)
+                .filter((filename) =>
+                  protectedPaths.has(filename) ||
+                  protectedPrefixes.some((prefix) => filename.startsWith(prefix))
+                )
+            )];
             if (changedControls.length) {
               core.setFailed(
                 "Protected release controls changed: " + changedControls.join(", ") +
