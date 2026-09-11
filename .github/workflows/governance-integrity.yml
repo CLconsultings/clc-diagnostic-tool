@@ -32,6 +32,13 @@ jobs:
               pull_number: context.issue.number,
               per_page: 100,
             });
+            if (files.length >= 3000) {
+              core.setFailed(
+                "Pull request file inventory reached GitHub's 3,000-file limit; " +
+                "control-plane integrity cannot be proven. Split the change."
+              );
+              return;
+            }
             const changedControls = [...new Set(
               files
                 .flatMap((file) => [file.filename, file.previous_filename])

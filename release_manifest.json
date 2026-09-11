@@ -19,6 +19,9 @@
       "diagnostic/engine.py",
       "diagnostic/model.py",
       "streamlit_app.py"
+    ],
+    "policy": [
+      "RELEASE_GOVERNANCE.md"
     ]
   },
   "runtime": "Python 3.11",

@@ -76,3 +76,43 @@ def test_non_governed_change_does_not_require_version_bump(monkeypatch):
     )
 
     assert errors == []
+
+
+def test_version_only_increase_is_rejected(monkeypatch):
+    monkeypatch.setattr(validate_release, "_base_version", lambda *_: "2.1.0")
+    errors = []
+
+    validate_release._validate_version_bump(
+        errors,
+        {"diagnostic/version.py"},
+        "## 2.2.0",
+        "a" * 40,
+        validate_release.ENGINE_PATHS,
+        "ENGINE_VERSION",
+        "2.2.0",
+    )
+
+    assert errors == [
+        "ENGINE_VERSION may change only with its associated governed behavior "
+        "(base 2.1.0, proposed 2.2.0)."
+    ]
+
+
+def test_version_only_regression_is_rejected(monkeypatch):
+    monkeypatch.setattr(validate_release, "_base_version", lambda *_: "2.1.0")
+    errors = []
+
+    validate_release._validate_version_bump(
+        errors,
+        {"diagnostic/version.py"},
+        "## 2.0.0",
+        "a" * 40,
+        validate_release.ENGINE_PATHS,
+        "ENGINE_VERSION",
+        "2.0.0",
+    )
+
+    assert errors == [
+        "ENGINE_VERSION may change only with its associated governed behavior "
+        "(base 2.1.0, proposed 2.0.0)."
+    ]

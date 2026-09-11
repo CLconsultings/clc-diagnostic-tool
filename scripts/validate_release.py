@@ -16,6 +16,8 @@ ENGINE_PATHS = {
     "diagnostic/model.py",
     "streamlit_app.py",
 }
+POLICY_PATHS = {"RELEASE_GOVERNANCE.md"}
+VERSION_FILE = "diagnostic/version.py"
 
 
 def _semver(value: str) -> tuple[int, int, int]:
@@ -73,7 +75,9 @@ def _validate_version_bump(
     constant: str,
     current_version: str,
 ) -> None:
-    if not (changed_paths & governed_paths):
+    behavior_changed = bool(changed_paths & governed_paths)
+    version_file_changed = VERSION_FILE in changed_paths
+    if not behavior_changed and not version_file_changed:
         return
 
     try:
@@ -83,17 +87,32 @@ def _validate_version_bump(
         return
 
     previous_version = _base_version(base_sha, constant)
-    if previous_version is not None:
+    if previous_version is None:
+        # The first governed bootstrap establishes the version baseline.
+        version_requires_changelog = version_file_changed
+    else:
         try:
-            if current <= _semver(previous_version):
-                errors.append(
-                    f"{constant} must increase when governed behavior changes "
-                    f"(base {previous_version}, proposed {current_version})."
-                )
+            previous = _semver(previous_version)
         except ValueError as exc:
             errors.append(f"Base {exc}")
+            return
 
-    if not re.search(rf"(?<!\d){re.escape(current_version)}(?!\d)", added_changelog):
+        version_changed = current != previous
+        if behavior_changed and current <= previous:
+            errors.append(
+                f"{constant} must increase when governed behavior changes "
+                f"(base {previous_version}, proposed {current_version})."
+            )
+        elif version_changed and not behavior_changed:
+            errors.append(
+                f"{constant} may change only with its associated governed behavior "
+                f"(base {previous_version}, proposed {current_version})."
+            )
+        version_requires_changelog = version_changed or behavior_changed
+
+    if version_requires_changelog and not re.search(
+        rf"(?<!\d){re.escape(current_version)}(?!\d)", added_changelog
+    ):
         errors.append(
             f"CHANGELOG.md additions must record {constant} {current_version} "
             "when its governed behavior changes."
@@ -133,6 +152,7 @@ def main() -> None:
         "version_controls": {
             "instrument": sorted(INSTRUMENT_PATHS),
             "engine": sorted(ENGINE_PATHS),
+            "policy": sorted(POLICY_PATHS),
         },
     }
     for key, expected_value in expected.items():
@@ -198,6 +218,15 @@ def main() -> None:
                     ENGINE_PATHS,
                     "ENGINE_VERSION",
                     ENGINE_VERSION,
+                )
+                _validate_version_bump(
+                    errors,
+                    changed_paths,
+                    added_changelog,
+                    base_sha,
+                    POLICY_PATHS,
+                    "RELEASE_POLICY_VERSION",
+                    RELEASE_POLICY_VERSION,
                 )
             except subprocess.CalledProcessError as exc:
                 errors.append(f"Unable to compare the pull request with its base: {exc}")

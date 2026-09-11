@@ -42,6 +42,10 @@ The product gate performs:
 - comparison with the exact pull-request base so governed behavior cannot
   change without a higher semantic version and a changelog entry.
 
+On pull requests, the gate checks out the exact head SHA rather than GitHub's
+synthetic merge revision. The trusted-base integrity gate rejects a file list
+that reaches GitHub's 3,000-file API cap because completeness cannot be proven.
+
 The workflow uses read-only repository permissions, pinned first-party action
 revisions, a time limit, and concurrency cancellation for superseded runs.
 
@@ -69,8 +73,9 @@ bypass and cannot authorize a product release in the same change.
 
 Changes to the governed paths declared in `release_manifest.json` must raise
 the associated semantic version in `diagnostic/version.py` and add that version
-to `CHANGELOG.md`. The product gate compares the proposal with the exact base
-commit and treats renames as delete-plus-add changes.
+to `CHANGELOG.md`. Version constants cannot change independently of their
+associated governed paths. The product gate compares the proposal with the
+exact base commit and treats renames as delete-plus-add changes.
 
 ## Evidence retained
 
