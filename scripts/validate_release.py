@@ -127,8 +127,8 @@ def main() -> None:
         "instrument_version": INSTRUMENT_VERSION,
         "engine_version": ENGINE_VERSION,
         "required_checks": [
-            "Governed release / release-gate",
-            "Governance integrity / immutable-controls",
+            "release-gate",
+            "immutable-controls",
         ],
         "version_controls": {
             "instrument": sorted(INSTRUMENT_PATHS),

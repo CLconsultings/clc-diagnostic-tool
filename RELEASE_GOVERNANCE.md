@@ -6,7 +6,7 @@
 | Owner | CLConsulting |
 | Status | Active when merged to `main` |
 | Authorization | Automated gates |
-| Required checks | `Governed release / release-gate`; `Governance integrity / immutable-controls` |
+| Required check contexts | `release-gate`; `immutable-controls` |
 
 ## Purpose
 

@@ -8,8 +8,8 @@
   "instrument_version": "2.0.0",
   "engine_version": "2.1.0",
   "required_checks": [
-    "Governed release / release-gate",
-    "Governance integrity / immutable-controls"
+    "release-gate",
+    "immutable-controls"
   ],
   "version_controls": {
     "instrument": [
