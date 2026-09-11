@@ -89,3 +89,26 @@ def test_contradiction_reduces_confidence():
     assert "Contradiction validation" in result.gates_triggered
     assert result.recommendation_confidence == EvidenceConfidence.LOW
     assert result.decision_state == DecisionState.DEFER
+
+
+def test_boolean_response_is_rejected():
+    data = case()
+    responses = dict(data.responses)
+    responses[1] = True
+    with pytest.raises(ValueError):
+        evaluate(AssessmentInput(**{**data.__dict__, "responses": responses}))
+
+
+def test_low_measurement_evidence_gate_routes_to_measure():
+    responses = {i: 5 for i in range(1, 26)}
+    for i in range(21, 26):
+        responses[i] = 2
+    result = evaluate(case(responses=responses))
+    assert "Evidence gate" in result.gates_triggered
+    assert result.service_pathway == ServicePathway.MEASURE
+
+
+def test_undefined_priority_routes_to_measure():
+    result = evaluate(case(score=5, priority_workflow="Not yet bounded", priority_defined=False))
+    assert result.service_pathway == ServicePathway.MEASURE
+    assert result.decision_state == DecisionState.TEST
