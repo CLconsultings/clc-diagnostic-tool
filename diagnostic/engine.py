@@ -21,7 +21,7 @@ CONFIDENCE_RANK = {
 def _validate(data: AssessmentInput) -> None:
     if set(data.responses) != set(range(1, 26)):
         raise ValueError("Exactly 25 responses numbered 1 through 25 are required.")
-    if any(score not in range(1, 6) for score in data.responses.values()):
+    if any(isinstance(score, bool) or not isinstance(score, int) or score not in range(1, 6) for score in data.responses.values()):
         raise ValueError("Every assessment response must be an integer from 1 through 5.")
     missing = set(DIMENSIONS) - set(data.evidence_confidence)
     if missing:
@@ -86,6 +86,7 @@ def _pathway(data: AssessmentInput, scores: Dict[str, int], total: int, gates: L
         or scores["Purpose and Alignment"] <= 14
         or not data.priority_defined
         or not data.baseline
+        or "Evidence gate" in gates
         or "Risk gate" in gates
     ):
         return ServicePathway.MEASURE

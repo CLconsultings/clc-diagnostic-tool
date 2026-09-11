@@ -47,10 +47,9 @@ with st.form("assessment"):
     stop_revert_condition = st.text_input("Stop / revert condition")
     invalidation_condition = st.text_input("Invalidation condition")
 
-    c1, c2, c3 = st.columns(3)
-    priority_defined = c1.checkbox("Priority is clearly defined", value=True)
-    risk_boundary_clear = c2.checkbox("Risk boundary is clear", value=True)
-    human_led_required = c3.checkbox("Keep Human-Led required")
+    c1, c2 = st.columns(2)
+    risk_boundary_clear = c1.checkbox("Risk boundary is clear", value=True)
+    human_led_required = c2.checkbox("Keep Human-Led required")
     explicit_stop = st.checkbox("A stop/hold condition is already triggered")
     contradictions = st.text_area(
         "Material contradiction flags (one per line)",
@@ -72,7 +71,7 @@ if submitted:
             review_point=review_point or "Not yet defined",
             stop_revert_condition=stop_revert_condition or "Not yet defined",
             invalidation_condition=invalidation_condition or "Not yet defined",
-            priority_defined=priority_defined,
+            priority_defined=bool(priority_workflow.strip()),
             risk_boundary_clear=risk_boundary_clear,
             human_led_required=human_led_required,
             explicit_stop=explicit_stop,
