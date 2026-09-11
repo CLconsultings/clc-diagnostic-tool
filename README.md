@@ -2,6 +2,8 @@
 
 A deterministic implementation of the CLConsulting AI Impact + Readiness assessment and Implementation Decision output.
 
+**Controlled release:** Instrument 2.0.0 | Engine 2.1.0 | Release Policy 1.0.0
+
 ## Governing behavior
 
 - 25 statements across five dimensions, scored 1–5 (maximum 125).
@@ -20,6 +22,8 @@ A deterministic implementation of the CLConsulting AI Impact + Readiness assessm
 - `diagnostic/engine.py` — deterministic scoring, gates, routing, confidence, and decision logic.
 - `streamlit_app.py` — client/internal assessment UI.
 - `tests/test_engine.py` — fail-closed regression cases.
+- `release_manifest.json` — machine-readable release identity and authority.
+- `RELEASE_GOVERNANCE.md` — authoritative release and rollback policy.
 
 ## Run
 
@@ -31,10 +35,24 @@ streamlit run streamlit_app.py
 ## Test
 
 ```bash
+pip install -r requirements-dev.txt
 pytest -q
 ```
 
-CI treats missing or failing tests as a release failure.
+The governed release gate validates the manifest, ownership, compilation,
+critical static checks, regression tests, and runtime dependency audit. A
+failed, skipped, stale, or unavailable check does not authorize release.
+
+## Data handling
+
+The current interface processes assessment inputs in memory and does not
+persist participant records. Do not enter confidential, personal, restricted,
+or client-identifying information.
+
+## Ownership and license
+
+This repository and the governed diagnostic logic are proprietary to
+CLConsulting. See `LICENSE`. Access does not grant reuse or distribution rights.
 
 ## Scope boundary
 

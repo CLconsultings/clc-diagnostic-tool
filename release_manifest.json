@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "system": "CLConsulting AI Impact + Readiness Diagnostic",
+  "owner": "CLConsulting",
+  "license": "Proprietary",
+  "decision_authority": "automated-gates",
+  "policy_version": "1.0.0",
+  "instrument_version": "2.0.0",
+  "engine_version": "2.1.0",
+  "required_check": "Governed release / release-gate",
+  "runtime": "Python 3.11",
+  "scope_boundary": "Diagnostic decision support only; no legal, regulatory, security, compliance, certification, or consequential autonomy authorization."
+}

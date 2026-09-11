@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 from .model import (
     AssessmentInput,
@@ -9,6 +9,7 @@ from .model import (
     WorkflowDisposition,
 )
 from .questions import DIMENSIONS
+from .version import ENGINE_VERSION, INSTRUMENT_VERSION, RELEASE_POLICY_VERSION
 
 
 CONFIDENCE_RANK = {
@@ -17,15 +18,72 @@ CONFIDENCE_RANK = {
     EvidenceConfidence.HIGH: 2,
 }
 
+PLACEHOLDER_VALUES = {
+    "not yet assigned",
+    "not yet bounded",
+    "not yet defined",
+    "not established",
+}
+
+
+def _is_blank(value: str | None) -> bool:
+    return value is None or not value.strip() or value.strip().lower() in PLACEHOLDER_VALUES
+
+
+def _priority_is_defined(data: AssessmentInput) -> bool:
+    return data.priority_defined and not _is_blank(data.priority_workflow)
+
+
+def _missing_decision_controls(data: AssessmentInput) -> List[str]:
+    fields = {
+        "Accountable owner": data.accountable_owner,
+        "Primary outcome measure": data.primary_outcome_measure,
+        "Quality/risk guardrail": data.quality_risk_guardrail,
+        "Review point": data.review_point,
+        "Stop/revert condition": data.stop_revert_condition,
+        "Invalidation condition": data.invalidation_condition,
+    }
+    return [label for label, value in fields.items() if _is_blank(value)]
+
 
 def _validate(data: AssessmentInput) -> None:
     if set(data.responses) != set(range(1, 26)):
         raise ValueError("Exactly 25 responses numbered 1 through 25 are required.")
     if any(isinstance(score, bool) or not isinstance(score, int) or score not in range(1, 6) for score in data.responses.values()):
         raise ValueError("Every assessment response must be an integer from 1 through 5.")
-    missing = set(DIMENSIONS) - set(data.evidence_confidence)
-    if missing:
-        raise ValueError(f"Evidence confidence is required for every dimension: {sorted(missing)}")
+    expected_dimensions = set(DIMENSIONS)
+    supplied_dimensions = set(data.evidence_confidence)
+    if supplied_dimensions != expected_dimensions:
+        missing = sorted(expected_dimensions - supplied_dimensions)
+        unexpected = sorted(supplied_dimensions - expected_dimensions)
+        raise ValueError(f"Evidence confidence dimensions are invalid. Missing: {missing}; unexpected: {unexpected}")
+    if any(not isinstance(value, EvidenceConfidence) for value in data.evidence_confidence.values()):
+        raise ValueError("Every evidence confidence value must use the controlled EvidenceConfidence vocabulary.")
+    text_fields = (
+        data.priority_workflow,
+        data.accountable_owner,
+        data.primary_outcome_measure,
+        data.quality_risk_guardrail,
+        data.review_point,
+        data.stop_revert_condition,
+        data.invalidation_condition,
+    )
+    if any(not isinstance(value, str) for value in text_fields):
+        raise ValueError("Decision-control text fields must be strings.")
+    if data.baseline is not None and not isinstance(data.baseline, str):
+        raise ValueError("Baseline must be text or None.")
+    if not isinstance(data.material_contradictions, list) or any(
+        not isinstance(value, str) for value in data.material_contradictions
+    ):
+        raise ValueError("Material contradictions must be a list of strings.")
+    flags = (
+        data.priority_defined,
+        data.risk_boundary_clear,
+        data.human_led_required,
+        data.explicit_stop,
+    )
+    if any(not isinstance(flag, bool) for flag in flags):
+        raise ValueError("Decision-control flags must be booleans.")
 
 
 def _scores(responses: Dict[int, int]) -> Dict[str, int]:
@@ -53,8 +111,10 @@ def _gates(data: AssessmentInput, scores: Dict[str, int]) -> List[str]:
         gates.append("Risk gate")
     if scores["Workflow Integration"] <= 14:
         gates.append("Workflow gate")
-    if scores["Impact and Measurement"] <= 14 or not data.baseline:
+    if scores["Impact and Measurement"] <= 14 or _is_blank(data.baseline):
         gates.append("Evidence gate")
+    if _missing_decision_controls(data):
+        gates.append("Decision controls gate")
     if any(score < 18 for score in scores.values()):
         gates.append("Maturity ceiling")
     if data.material_contradictions:
@@ -67,8 +127,10 @@ def _limiting_condition(data: AssessmentInput, scores: Dict[str, int], gates: Li
         return "Risk/control"
     if "Evidence gate" in gates:
         return "Evidence/measurement"
-    if not data.priority_defined or scores["Purpose and Alignment"] <= 14:
+    if not _priority_is_defined(data) or scores["Purpose and Alignment"] <= 14:
         return "Purpose"
+    if "Decision controls gate" in gates:
+        return "Decision controls"
     weakest = min(scores, key=scores.get)
     return {
         "Purpose and Alignment": "Purpose",
@@ -84,10 +146,11 @@ def _pathway(data: AssessmentInput, scores: Dict[str, int], total: int, gates: L
     if (
         total < 80
         or scores["Purpose and Alignment"] <= 14
-        or not data.priority_defined
-        or not data.baseline
+        or not _priority_is_defined(data)
+        or _is_blank(data.baseline)
         or "Evidence gate" in gates
         or "Risk gate" in gates
+        or "Decision controls gate" in gates
     ):
         return ServicePathway.MEASURE
 
@@ -123,6 +186,8 @@ def _decision_state(
 ) -> DecisionState:
     if data.explicit_stop:
         return DecisionState.STOP
+    if "Decision controls gate" in gates:
+        return DecisionState.DEFER
     if "Risk gate" in gates and not data.risk_boundary_clear:
         return DecisionState.DEFER
     if recommendation_confidence == EvidenceConfidence.LOW:
@@ -148,6 +213,8 @@ def _next_action(
         return "Establish or confirm the baseline and collect decision-grade evidence against the primary outcome measure."
     if limiting == "Purpose":
         return "Bound one priority workflow, accountable owner, intended outcome, and success measure before further AI expansion."
+    if limiting == "Decision controls":
+        return "Complete the owner, outcome measure, guardrail, review point, stop/revert condition, and invalidation condition before testing."
     if pathway == ServicePathway.OPTIMIZE:
         return "Redesign and test one repeatable workflow with explicit human-review points, controls, and adoption ownership."
     if pathway == ServicePathway.PROVE:
@@ -172,10 +239,13 @@ def evaluate(data: AssessmentInput) -> AssessmentResult:
     )
 
     gaps: List[str] = []
-    if not data.baseline:
+    if _is_blank(data.baseline):
         gaps.append("Baseline missing; impact/ROI remains unproven.")
+    if not _priority_is_defined(data):
+        gaps.append("Priority workflow is not bounded.")
     if not data.risk_boundary_clear:
         gaps.append("Risk boundary is unresolved.")
+    gaps.extend(f"{label} is missing." for label in _missing_decision_controls(data))
     gaps.extend(data.material_contradictions)
 
     current_position = (
@@ -184,6 +254,9 @@ def evaluate(data: AssessmentInput) -> AssessmentResult:
     )
 
     return AssessmentResult(
+        instrument_version=INSTRUMENT_VERSION,
+        engine_version=ENGINE_VERSION,
+        release_policy_version=RELEASE_POLICY_VERSION,
         total_score=total,
         dimension_scores=scores,
         evidence_confidence=evidence,
