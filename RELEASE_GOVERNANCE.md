@@ -6,7 +6,7 @@
 | Owner | CLConsulting |
 | Status | Active when merged to `main` |
 | Authorization | Automated gates |
-| Required check | `Governed release / release-gate` |
+| Required checks | `Governed release / release-gate`; `Governance integrity / immutable-controls` |
 
 ## Purpose
 
@@ -26,8 +26,9 @@ A change is eligible for production only when all of the following are true:
 5. Governing versions and `release_manifest.json` agree.
 6. The change preserves the scope boundary and proprietary license.
 
-Passing automation authorizes release. There is no separate human-approval
-gate. Failed, skipped, stale, or unavailable checks do not authorize release.
+Passing automation authorizes routine product releases. There is no separate
+human-approval gate for those releases. Failed, skipped, stale, or unavailable
+checks do not authorize release.
 
 ## Automated gate
 
@@ -41,6 +42,20 @@ The single required gate performs:
 
 The workflow uses read-only repository permissions, pinned first-party action
 revisions, a time limit, and concurrency cancellation for superseded runs.
+
+## Control-plane integrity
+
+The integrity check runs from the trusted base branch using
+`pull_request_target`; it does not check out or execute pull-request code. It
+automatically rejects routine pull requests that change CODEOWNERS, either
+required workflow, this policy, or the release validator. This prevents the
+release gate from authorizing its own removal or weakening.
+
+Changing the control plane requires an explicit governance re-bootstrap
+authorized by the repository owner. The proposed controls must be reviewed and
+verified before activation, then the required-check settings must be
+re-established against the new trusted baseline. This is not an emergency
+bypass and cannot authorize a product release in the same change.
 
 ## Change classification
 
@@ -72,13 +87,12 @@ change set.
 
 ## Repository controls
 
-`main` must block force pushes and deletion, require the governed release
-status check, require resolved conversations, and reject direct changes that
-bypass the pull-request path. The repository must remain private unless an
-explicit CLConsulting IP decision supersedes this policy.
+`main` must block force pushes and deletion, require both status checks,
+require resolved conversations, and reject direct changes that bypass the
+pull-request path. The repository must remain private unless an explicit
+CLConsulting IP decision supersedes this policy.
 
 ## Exceptions
 
-There is no emergency bypass. If GitHub or a required control is unavailable,
-the release remains pending. Changes to this policy require the same governed
-release process.
+There is no emergency product-release bypass. If GitHub or a required control
+is unavailable, the release remains pending.

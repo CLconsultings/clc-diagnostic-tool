@@ -18,6 +18,7 @@ def main() -> None:
         ".github/CODEOWNERS",
         ".github/dependabot.yml",
         ".github/pull_request_template.md",
+        ".github/workflows/governance-integrity.yml",
         ".github/workflows/python-app.yml",
     ]
     for relative_path in required_paths:
@@ -32,7 +33,10 @@ def main() -> None:
         "policy_version": RELEASE_POLICY_VERSION,
         "instrument_version": INSTRUMENT_VERSION,
         "engine_version": ENGINE_VERSION,
-        "required_check": "Governed release / release-gate",
+        "required_checks": [
+            "Governed release / release-gate",
+            "Governance integrity / immutable-controls",
+        ],
     }
     for key, expected_value in expected.items():
         if manifest.get(key) != expected_value:
@@ -59,6 +63,18 @@ def main() -> None:
     ):
         if required_command not in workflow:
             errors.append(f"Required workflow command is missing: {required_command}")
+
+    integrity_workflow = (ROOT / ".github/workflows/governance-integrity.yml").read_text(encoding="utf-8")
+    for protected_control in (
+        "pull_request_target",
+        ".github/CODEOWNERS",
+        ".github/workflows/governance-integrity.yml",
+        ".github/workflows/python-app.yml",
+        "RELEASE_GOVERNANCE.md",
+        "scripts/validate_release.py",
+    ):
+        if protected_control not in integrity_workflow:
+            errors.append(f"Governance integrity control is missing: {protected_control}")
 
     if errors:
         raise SystemExit("Release governance validation failed:\n- " + "\n- ".join(errors))

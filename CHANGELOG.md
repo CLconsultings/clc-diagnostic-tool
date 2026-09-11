@@ -8,6 +8,7 @@ All governed releases are recorded here using semantic versioning.
 - Replaced the inherited open-source license with a proprietary notice.
 - Corrected repository ownership and separated runtime from test dependencies.
 - Added release-control, regression, static-analysis, and dependency-audit gates.
+- Added an independent base-branch gate that prevents routine changes from weakening the control plane.
 - Added governing versions to every assessment result.
 - Made decision controls and interface defaults fail closed.
 

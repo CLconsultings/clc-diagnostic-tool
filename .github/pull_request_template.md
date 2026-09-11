@@ -21,5 +21,6 @@ What changed, and what intentionally did not change?
 
 ## Release declaration
 
-Merge only when the exact head passes `Governed release / release-gate`, GitHub
-reports the pull request mergeable, and all conversations are resolved.
+Merge only when the exact head passes both required checks, GitHub reports the
+pull request mergeable, and all conversations are resolved. Protected
+control-plane changes require a separate governance re-bootstrap.
