@@ -14,6 +14,8 @@ All governed releases are recorded here using semantic versioning.
 - Enforced semantic version and changelog updates for governed behavior changes.
 - Made large pull requests fail closed when GitHub cannot return a complete file inventory.
 - Bound release evidence to the exact pull-request head SHA.
+- Protected the validator package initializer and parsed version declarations without execution.
+- Enforced the approved diagnostic scope boundary in the release manifest.
 - Added governing versions to every assessment result.
 - Made decision controls and interface defaults fail closed.
 

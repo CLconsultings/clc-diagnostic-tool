@@ -116,3 +116,47 @@ def test_version_only_regression_is_rejected(monkeypatch):
         "ENGINE_VERSION may change only with its associated governed behavior "
         "(base 2.1.0, proposed 2.0.0)."
     ]
+
+
+def test_manifest_scope_boundary_must_match_approved_value():
+    versions = {
+        "INSTRUMENT_VERSION": "2.0.0",
+        "ENGINE_VERSION": "2.1.0",
+        "RELEASE_POLICY_VERSION": "1.0.0",
+    }
+    manifest = validate_release._manifest_expectations(versions)
+    manifest["scope_boundary"] = "Consequential autonomy is authorized."
+    errors = []
+
+    validate_release._validate_manifest(errors, manifest, versions)
+
+    assert errors == [
+        "release_manifest.json 'scope_boundary' must equal "
+        f"{validate_release.APPROVED_SCOPE_BOUNDARY!r}"
+    ]
+
+
+def test_version_module_is_parsed_without_executable_statements():
+    source = '''
+INSTRUMENT_VERSION = "2.0.0"
+ENGINE_VERSION = "2.1.0"
+RELEASE_POLICY_VERSION = "1.0.0"
+raise SystemExit(0)
+'''
+
+    try:
+        validate_release._parse_version_constants(source)
+    except ValueError as exc:
+        assert str(exc).startswith(
+            "diagnostic/version.py may contain only literal assignments"
+        )
+    else:
+        raise AssertionError("Executable version-module statements must be rejected")
+
+
+def test_integrity_workflow_protects_validator_package_initializer():
+    workflow = (
+        validate_release.ROOT / ".github/workflows/governance-integrity.yml"
+    ).read_text(encoding="utf-8")
+
+    assert '"scripts/__init__.py"' in workflow

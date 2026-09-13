@@ -23,6 +23,7 @@ jobs:
               ".github/CODEOWNERS",
               "LICENSE",
               "RELEASE_GOVERNANCE.md",
+              "scripts/__init__.py",
               "scripts/validate_release.py",
             ]);
             const protectedPrefixes = [".github/workflows/"];
