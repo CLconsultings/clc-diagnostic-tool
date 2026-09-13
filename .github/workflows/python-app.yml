@@ -34,14 +34,14 @@ jobs:
           cache-dependency-path: |
             requirements.txt
             requirements-dev.txt
+      - name: Validate release controls
+        run: python -I -S scripts/validate_release.py
+        env:
+          GOVERNANCE_BASE_SHA: ${{ github.event.pull_request.base.sha }}
       - name: Install controlled dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt -r requirements-dev.txt
-      - name: Validate release controls
-        run: python -m scripts.validate_release
-        env:
-          GOVERNANCE_BASE_SHA: ${{ github.event.pull_request.base.sha }}
       - name: Check syntax and code quality
         run: |
           python -m compileall -q diagnostic streamlit_app.py scripts tests

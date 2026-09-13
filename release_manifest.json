@@ -16,6 +16,7 @@
       "diagnostic/questions.py"
     ],
     "engine": [
+      "diagnostic/__init__.py",
       "diagnostic/engine.py",
       "diagnostic/model.py",
       "streamlit_app.py"

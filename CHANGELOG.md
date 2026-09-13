@@ -16,6 +16,8 @@ All governed releases are recorded here using semantic versioning.
 - Bound release evidence to the exact pull-request head SHA.
 - Protected the validator package initializer and parsed version declarations without execution.
 - Enforced the approved diagnostic scope boundary in the release manifest.
+- Moved isolated release validation ahead of pull-request dependency installation.
+- Added the diagnostic package entry point to engine version controls.
 - Added governing versions to every assessment result.
 - Made decision controls and interface defaults fail closed.
 

@@ -160,3 +160,18 @@ def test_integrity_workflow_protects_validator_package_initializer():
     ).read_text(encoding="utf-8")
 
     assert '"scripts/__init__.py"' in workflow
+
+
+def test_release_validation_precedes_dependency_installation():
+    workflow = (validate_release.ROOT / ".github/workflows/python-app.yml").read_text(
+        encoding="utf-8"
+    )
+
+    validation = workflow.index("python -I -S scripts/validate_release.py")
+    dependency_installation = workflow.index("python -m pip install --upgrade pip")
+
+    assert validation < dependency_installation
+
+
+def test_public_package_entrypoint_is_engine_governed():
+    assert "diagnostic/__init__.py" in validate_release.ENGINE_PATHS

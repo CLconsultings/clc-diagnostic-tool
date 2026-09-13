@@ -15,6 +15,7 @@ APPROVED_SCOPE_BOUNDARY = (
 )
 INSTRUMENT_PATHS = {"diagnostic/questions.py"}
 ENGINE_PATHS = {
+    "diagnostic/__init__.py",
     "diagnostic/engine.py",
     "diagnostic/model.py",
     "streamlit_app.py",
@@ -244,7 +245,7 @@ def main() -> None:
 
     workflow = (ROOT / ".github/workflows/python-app.yml").read_text(encoding="utf-8")
     for required_command in (
-        "python -m scripts.validate_release",
+        "python -I -S scripts/validate_release.py",
         "python -m pytest -q",
         "python -m pip_audit -r requirements.txt",
     ):

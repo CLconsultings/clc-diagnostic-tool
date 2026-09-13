@@ -62,6 +62,9 @@ The validator package initializer is part of the protected control plane because
 executes it before the validator module. Version declarations are parsed as inert data;
 the validator never imports proposed version code while deciding whether a release passes.
 
+The release validator runs in isolated Python mode before pull-request dependencies are
+installed. The diagnostic package entry point is governed as engine behavior.
+
 Changing the control plane requires an explicit governance re-bootstrap
 authorized by the repository owner. The proposed controls must be reviewed and
 verified before activation, then the required-check settings must be
