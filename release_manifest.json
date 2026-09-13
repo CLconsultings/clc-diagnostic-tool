@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "system": "CLConsulting AI Impact + Readiness Diagnostic",
+  "owner": "CLConsulting",
+  "license": "Proprietary",
+  "decision_authority": "automated-gates",
+  "policy_version": "1.0.0",
+  "instrument_version": "2.0.0",
+  "engine_version": "2.1.0",
+  "required_checks": [
+    "release-gate",
+    "immutable-controls"
+  ],
+  "version_controls": {
+    "instrument": [
+      "diagnostic/questions.py"
+    ],
+    "engine": [
+      "diagnostic/__init__.py",
+      "diagnostic/engine.py",
+      "diagnostic/model.py",
+      "streamlit_app.py"
+    ],
+    "policy": [
+      "RELEASE_GOVERNANCE.md"
+    ]
+  },
+  "runtime": "Python 3.11",
+  "scope_boundary": "Diagnostic decision support only; no legal, regulatory, security, compliance, certification, or consequential autonomy authorization."
+}

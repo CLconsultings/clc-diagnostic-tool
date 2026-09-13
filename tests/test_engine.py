@@ -17,6 +17,8 @@ def case(score=4, evidence=EvidenceConfidence.HIGH, **overrides):
         review_point="30 days",
         stop_revert_condition="Error rate exceeds baseline",
         invalidation_condition="No measurable workflow improvement",
+        priority_defined=True,
+        risk_boundary_clear=True,
     )
     data.update(overrides)
     return AssessmentInput(**data)
@@ -109,6 +111,42 @@ def test_low_measurement_evidence_gate_routes_to_measure():
 
 
 def test_undefined_priority_routes_to_measure():
-    result = evaluate(case(score=5, priority_workflow="Not yet bounded", priority_defined=False))
+    result = evaluate(case(score=5, priority_workflow="", priority_defined=True))
     assert result.service_pathway == ServicePathway.MEASURE
     assert result.decision_state == DecisionState.TEST
+    assert "Priority workflow is not bounded." in result.unresolved_gaps
+
+
+def test_missing_decision_controls_fail_closed():
+    result = evaluate(case(score=5, accountable_owner=""))
+    assert "Decision controls gate" in result.gates_triggered
+    assert result.service_pathway == ServicePathway.MEASURE
+    assert result.decision_state == DecisionState.DEFER
+    assert "Accountable owner is missing." in result.unresolved_gaps
+
+
+def test_whitespace_baseline_triggers_evidence_gate():
+    result = evaluate(case(score=5, baseline="   "))
+    assert "Evidence gate" in result.gates_triggered
+    assert result.service_pathway == ServicePathway.MEASURE
+
+
+def test_uncontrolled_evidence_value_is_rejected():
+    confidence = {name: EvidenceConfidence.HIGH for name in DIMENSIONS}
+    confidence["Purpose and Alignment"] = "High"
+    with pytest.raises(ValueError):
+        evaluate(case(evidence_confidence=confidence))
+
+
+def test_result_records_governing_versions():
+    result = evaluate(case(score=5))
+    assert result.instrument_version == "2.0.0"
+    assert result.engine_version == "2.1.0"
+    assert result.release_policy_version == "1.0.0"
+
+
+def test_invalid_decision_control_types_are_rejected():
+    with pytest.raises(ValueError):
+        evaluate(case(accountable_owner=None))
+    with pytest.raises(ValueError):
+        evaluate(case(material_contradictions="not-a-list"))

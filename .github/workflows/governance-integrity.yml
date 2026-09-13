@@ -1,0 +1,60 @@
+name: Governance integrity
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  immutable-controls:
+    name: immutable-controls
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Reject control-plane changes
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const protectedPaths = new Set([
+              ".github/CODEOWNERS",
+              "LICENSE",
+              "RELEASE_GOVERNANCE.md",
+              "requirements-dev.txt",
+              "requirements.txt",
+              "scripts/__init__.py",
+              "scripts/run_regression_oracle.py",
+              "scripts/validate_release.py",
+            ]);
+            const protectedPrefixes = [".github/workflows/", "tests/"];
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              per_page: 100,
+            });
+            if (files.length >= 3000) {
+              core.setFailed(
+                "Pull request file inventory reached GitHub's 3,000-file limit; " +
+                "control-plane integrity cannot be proven. Split the change."
+              );
+              return;
+            }
+            const changedControls = [...new Set(
+              files
+                .flatMap((file) => [file.filename, file.previous_filename])
+                .filter(Boolean)
+                .filter((filename) =>
+                  protectedPaths.has(filename) ||
+                  protectedPrefixes.some((prefix) => filename.startsWith(prefix))
+                )
+            )];
+            if (changedControls.length) {
+              core.setFailed(
+                "Protected release controls changed: " + changedControls.join(", ") +
+                ". Use an explicitly authorized governance re-bootstrap."
+              );
+            }

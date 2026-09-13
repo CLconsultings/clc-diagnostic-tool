@@ -39,8 +39,8 @@ class AssessmentInput:
     review_point: str
     stop_revert_condition: str
     invalidation_condition: str
-    priority_defined: bool = True
-    risk_boundary_clear: bool = True
+    priority_defined: bool = False
+    risk_boundary_clear: bool = False
     human_led_required: bool = False
     explicit_stop: bool = False
     material_contradictions: List[str] = field(default_factory=list)
@@ -48,6 +48,9 @@ class AssessmentInput:
 
 @dataclass(frozen=True)
 class AssessmentResult:
+    instrument_version: str
+    engine_version: str
+    release_policy_version: str
     total_score: int
     dimension_scores: Dict[str, int]
     evidence_confidence: EvidenceConfidence

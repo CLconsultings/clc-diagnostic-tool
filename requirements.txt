@@ -1,2 +1,1 @@
 streamlit>=1.38,<2
-pytest>=8,<9

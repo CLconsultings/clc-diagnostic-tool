@@ -1,12 +1,14 @@
 import streamlit as st
 
-from diagnostic import AssessmentInput, EvidenceConfidence, evaluate
+from diagnostic import AssessmentInput, ENGINE_VERSION, EvidenceConfidence, INSTRUMENT_VERSION, evaluate
 from diagnostic.questions import DIMENSIONS, QUESTIONS
 
 
 st.set_page_config(page_title="CLConsulting AI Impact + Readiness", layout="wide")
 st.title("AI Impact + Readiness")
-st.caption("Measure. Optimize. Prove. | Decision-grade diagnostic")
+st.caption(
+    f"Measure. Optimize. Prove. | Instrument {INSTRUMENT_VERSION} | Engine {ENGINE_VERSION}"
+)
 
 st.info(
     "Rate current, consistent behavior and available evidence — not intent, enthusiasm, "
@@ -14,9 +16,6 @@ st.info(
 )
 
 with st.form("assessment"):
-    participant = st.text_input("Participant")
-    organization = st.text_input("Role / organization")
-
     responses = {}
     confidence = {}
     for dimension, question_ids in DIMENSIONS.items():
@@ -25,16 +24,16 @@ with st.form("assessment"):
             responses[qid] = st.radio(
                 f"{qid}. {QUESTIONS[qid]}",
                 options=[1, 2, 3, 4, 5],
+                index=None,
                 horizontal=True,
                 key=f"q{qid}",
             )
-        confidence[dimension] = EvidenceConfidence(
-            st.selectbox(
-                f"Evidence confidence — {dimension}",
-                ["High", "Medium", "Low"],
-                index=1,
-                key=f"confidence-{dimension}",
-            )
+        confidence[dimension] = st.selectbox(
+            f"Evidence confidence — {dimension}",
+            ["High", "Medium", "Low"],
+            index=None,
+            placeholder="Select confidence",
+            key=f"confidence-{dimension}",
         )
 
     st.header("Implementation decision inputs")
@@ -48,7 +47,7 @@ with st.form("assessment"):
     invalidation_condition = st.text_input("Invalidation condition")
 
     c1, c2 = st.columns(2)
-    risk_boundary_clear = c1.checkbox("Risk boundary is clear", value=True)
+    risk_boundary_clear = c1.checkbox("Risk boundary is clear", value=False)
     human_led_required = c2.checkbox("Keep Human-Led required")
     explicit_stop = st.checkbox("A stop/hold condition is already triggered")
     contradictions = st.text_area(
@@ -59,18 +58,27 @@ with st.form("assessment"):
     submitted = st.form_submit_button("Generate implementation decision", type="primary")
 
 if submitted:
+    missing_responses = [qid for qid, score in responses.items() if score is None]
+    missing_confidence = [name for name, value in confidence.items() if value is None]
+    if missing_responses or missing_confidence:
+        st.error("Complete every assessment response and evidence-confidence selection before generating a decision.")
+        st.stop()
+
+    parsed_confidence = {
+        name: EvidenceConfidence(value) for name, value in confidence.items()
+    }
     result = evaluate(
         AssessmentInput(
             responses=responses,
-            evidence_confidence=confidence,
-            priority_workflow=priority_workflow or "Not yet bounded",
-            accountable_owner=accountable_owner or "Not yet assigned",
+            evidence_confidence=parsed_confidence,
+            priority_workflow=priority_workflow.strip(),
+            accountable_owner=accountable_owner.strip(),
             baseline=baseline.strip() or None,
-            primary_outcome_measure=primary_outcome_measure or "Not yet defined",
-            quality_risk_guardrail=quality_risk_guardrail or "Not yet defined",
-            review_point=review_point or "Not yet defined",
-            stop_revert_condition=stop_revert_condition or "Not yet defined",
-            invalidation_condition=invalidation_condition or "Not yet defined",
+            primary_outcome_measure=primary_outcome_measure.strip(),
+            quality_risk_guardrail=quality_risk_guardrail.strip(),
+            review_point=review_point.strip(),
+            stop_revert_condition=stop_revert_condition.strip(),
+            invalidation_condition=invalidation_condition.strip(),
             priority_defined=bool(priority_workflow.strip()),
             risk_boundary_clear=risk_boundary_clear,
             human_led_required=human_led_required,
@@ -95,7 +103,7 @@ if submitted:
             {
                 "Dimension": name,
                 "Score": f"{score}/25",
-                "Evidence confidence": confidence[name].value,
+                "Evidence confidence": parsed_confidence[name].value,
             }
             for name, score in result.dimension_scores.items()
         ]
@@ -121,5 +129,7 @@ if submitted:
 
     st.caption(
         "This diagnostic supports implementation decisions. It is not a legal, regulatory, security, "
-        "compliance, or certification determination."
+        "compliance, or certification determination. "
+        f"Instrument {result.instrument_version}; engine {result.engine_version}; "
+        f"release policy {result.release_policy_version}."
     )
