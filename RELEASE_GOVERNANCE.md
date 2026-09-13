@@ -65,6 +65,12 @@ the validator never imports proposed version code while deciding whether a relea
 The release validator runs in isolated Python mode before pull-request dependencies are
 installed. The diagnostic package entry point is governed as engine behavior.
 
+The required regression oracle, its pinned runner dependencies, and its test inventory are
+protected controls. It runs with repository pytest configuration, local conftest files, and
+third-party plugin autoloading disabled. Changes to the oracle or controlled dependencies
+require a governance re-bootstrap. New or relocated product Python modules fail validation
+until they are assigned to an approved version-control class.
+
 Changing the control plane requires an explicit governance re-bootstrap
 authorized by the repository owner. The proposed controls must be reviewed and
 verified before activation, then the required-check settings must be

@@ -23,10 +23,13 @@ jobs:
               ".github/CODEOWNERS",
               "LICENSE",
               "RELEASE_GOVERNANCE.md",
+              "requirements-dev.txt",
+              "requirements.txt",
               "scripts/__init__.py",
+              "scripts/run_regression_oracle.py",
               "scripts/validate_release.py",
             ]);
-            const protectedPrefixes = [".github/workflows/"];
+            const protectedPrefixes = [".github/workflows/", "tests/"];
             const files = await github.paginate(github.rest.pulls.listFiles, {
               owner: context.repo.owner,
               repo: context.repo.repo,

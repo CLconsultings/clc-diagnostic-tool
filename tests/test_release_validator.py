@@ -175,3 +175,56 @@ def test_release_validation_precedes_dependency_installation():
 
 def test_public_package_entrypoint_is_engine_governed():
     assert "diagnostic/__init__.py" in validate_release.ENGINE_PATHS
+
+
+def test_manifest_release_identity_fields_must_match():
+    versions = {
+        "INSTRUMENT_VERSION": "2.0.0",
+        "ENGINE_VERSION": "2.1.0",
+        "RELEASE_POLICY_VERSION": "1.0.0",
+    }
+    approved = validate_release._manifest_expectations(versions)
+
+    for field in ("schema_version", "system", "runtime"):
+        manifest = dict(approved)
+        manifest.pop(field)
+        errors = []
+
+        validate_release._validate_manifest(errors, manifest, versions)
+
+        assert any(f"{field!r} must equal" in error for error in errors)
+
+
+def test_unclassified_product_python_path_is_rejected():
+    tracked = (
+        validate_release.INSTRUMENT_PATHS
+        | validate_release.ENGINE_PATHS
+        | {validate_release.VERSION_FILE, "diagnostic/evaluator.py"}
+    )
+
+    assert validate_release._unclassified_product_python_paths(tracked) == {
+        "diagnostic/evaluator.py"
+    }
+
+
+def test_every_governed_path_exists():
+    governed = (
+        validate_release.INSTRUMENT_PATHS
+        | validate_release.ENGINE_PATHS
+        | validate_release.POLICY_PATHS
+    )
+
+    assert all((validate_release.ROOT / path).is_file() for path in governed)
+
+
+def test_workflow_runs_protected_regression_oracle():
+    workflow = (validate_release.ROOT / ".github/workflows/python-app.yml").read_text(
+        encoding="utf-8"
+    )
+    integrity = (
+        validate_release.ROOT / ".github/workflows/governance-integrity.yml"
+    ).read_text(encoding="utf-8")
+
+    assert "python -I scripts/run_regression_oracle.py" in workflow
+    assert '"scripts/run_regression_oracle.py"' in integrity
+    assert '"tests/"' in integrity

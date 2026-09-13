@@ -22,6 +22,11 @@ ENGINE_PATHS = {
 }
 POLICY_PATHS = {"RELEASE_GOVERNANCE.md"}
 VERSION_FILE = "diagnostic/version.py"
+TRUSTED_TEST_PATHS = {
+    "tests/test_engine.py",
+    "tests/test_release_validator.py",
+}
+TRUSTED_RUNNER_PATH = "scripts/run_regression_oracle.py"
 VERSION_CONSTANTS = (
     "INSTRUMENT_VERSION",
     "ENGINE_VERSION",
@@ -77,6 +82,8 @@ def _current_versions() -> dict[str, str]:
 
 def _manifest_expectations(versions: dict[str, str]) -> dict[str, object]:
     return {
+        "schema_version": 1,
+        "system": "CLConsulting AI Impact + Readiness Diagnostic",
         "owner": "CLConsulting",
         "license": "Proprietary",
         "decision_authority": "automated-gates",
@@ -92,6 +99,7 @@ def _manifest_expectations(versions: dict[str, str]) -> dict[str, object]:
             "engine": sorted(ENGINE_PATHS),
             "policy": sorted(POLICY_PATHS),
         },
+        "runtime": "Python 3.11",
         "scope_boundary": APPROVED_SCOPE_BOUNDARY,
     }
 
@@ -99,9 +107,40 @@ def _manifest_expectations(versions: dict[str, str]) -> dict[str, object]:
 def _validate_manifest(
     errors: list[str], manifest: dict[str, object], versions: dict[str, str]
 ) -> None:
-    for key, expected_value in _manifest_expectations(versions).items():
+    expected = _manifest_expectations(versions)
+    for key, expected_value in expected.items():
         if manifest.get(key) != expected_value:
             errors.append(f"release_manifest.json {key!r} must equal {expected_value!r}")
+
+    unexpected = set(manifest) - set(expected)
+    if unexpected:
+        errors.append(
+            "release_manifest.json contains unapproved fields: "
+            + ", ".join(sorted(unexpected))
+        )
+
+
+def _unclassified_product_python_paths(tracked_paths: set[str]) -> set[str]:
+    classified = INSTRUMENT_PATHS | ENGINE_PATHS | {VERSION_FILE}
+    non_product_prefixes = ("scripts/", "tests/")
+    return {
+        path
+        for path in tracked_paths
+        if path.endswith(".py")
+        and not path.startswith(non_product_prefixes)
+        and path not in classified
+    }
+
+
+def _tracked_python_paths() -> set[str]:
+    result = subprocess.run(
+        ["git", "ls-files", "--", "*.py"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return set(result.stdout.splitlines())
 
 
 def _base_version(base_sha: str, constant: str) -> str | None:
@@ -199,21 +238,34 @@ def _validate_version_bump(
 
 def main() -> None:
     errors = []
-    required_paths = [
+    required_paths = {
         "LICENSE",
         "RELEASE_GOVERNANCE.md",
         "SECURITY.md",
         "CHANGELOG.md",
         "release_manifest.json",
+        "requirements-dev.txt",
+        "requirements.txt",
+        TRUSTED_RUNNER_PATH,
         ".github/CODEOWNERS",
         ".github/dependabot.yml",
         ".github/pull_request_template.md",
         ".github/workflows/governance-integrity.yml",
         ".github/workflows/python-app.yml",
-    ]
-    for relative_path in required_paths:
+    } | INSTRUMENT_PATHS | ENGINE_PATHS | POLICY_PATHS | TRUSTED_TEST_PATHS | {VERSION_FILE}
+    for relative_path in sorted(required_paths):
         if not (ROOT / relative_path).is_file():
             errors.append(f"Required release-control file is missing: {relative_path}")
+
+    try:
+        unclassified_paths = _unclassified_product_python_paths(_tracked_python_paths())
+        if unclassified_paths:
+            errors.append(
+                "Product Python paths are outside version control classification: "
+                + ", ".join(sorted(unclassified_paths))
+            )
+    except subprocess.CalledProcessError as exc:
+        errors.append(f"Unable to classify tracked Python paths: {exc}")
 
     try:
         versions = _current_versions()
@@ -246,6 +298,7 @@ def main() -> None:
     workflow = (ROOT / ".github/workflows/python-app.yml").read_text(encoding="utf-8")
     for required_command in (
         "python -I -S scripts/validate_release.py",
+        "python -I scripts/run_regression_oracle.py",
         "python -m pytest -q",
         "python -m pip_audit -r requirements.txt",
     ):
@@ -260,8 +313,12 @@ def main() -> None:
         "file.previous_filename",
         "LICENSE",
         "RELEASE_GOVERNANCE.md",
+        "requirements-dev.txt",
+        "requirements.txt",
         "scripts/__init__.py",
+        "scripts/run_regression_oracle.py",
         "scripts/validate_release.py",
+        "tests/",
     ):
         if protected_control not in integrity_workflow:
             errors.append(f"Governance integrity control is missing: {protected_control}")

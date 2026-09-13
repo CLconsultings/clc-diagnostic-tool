@@ -18,6 +18,9 @@ All governed releases are recorded here using semantic versioning.
 - Enforced the approved diagnostic scope boundary in the release manifest.
 - Moved isolated release validation ahead of pull-request dependency installation.
 - Added the diagnostic package entry point to engine version controls.
+- Protected an explicit regression oracle and pinned its test-runner dependencies.
+- Rejected missing, relocated, or unclassified governed product modules.
+- Enforced every release-manifest identity field and rejected unapproved additions.
 - Added governing versions to every assessment result.
 - Made decision controls and interface defaults fail closed.
 

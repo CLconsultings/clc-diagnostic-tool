@@ -46,7 +46,9 @@ jobs:
         run: |
           python -m compileall -q diagnostic streamlit_app.py scripts tests
           flake8 diagnostic streamlit_app.py scripts tests --count --select=E9,F401,F63,F7,F82,F811 --show-source --statistics
-      - name: Run required regression suite
+      - name: Run trusted regression oracle
+        run: python -I scripts/run_regression_oracle.py
+      - name: Run complete proposed test suite
         run: python -m pytest -q
       - name: Audit runtime dependencies
         run: python -m pip_audit -r requirements.txt --progress-spinner off
