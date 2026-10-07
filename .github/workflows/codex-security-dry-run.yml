@@ -24,6 +24,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Validate Codex Security configuration
         uses: openai/codex-security@eb73cc0fa64f25f432bace6f8ff3f475038bfc71
